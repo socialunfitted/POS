@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniPOS - Enterprise SaaS POS Billing Platform</title>
+  
+  <meta name="description" content="Production-ready multi-tenant SaaS Point of Sale & Billing System built with Vanilla HTML5, CSS3, JavaScript ES6 Modules, and Supabase.">
+  <meta name="theme-color" content="#5b50f0">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/assets/icon-192.png">
+
+  <!-- Google Fonts — Inter Variable + JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Architecture Stylesheets -->
+  <link rel="stylesheet" href="/src/css/reset.css">
+  <link rel="stylesheet" href="/src/css/tokens.css">
+  <link rel="stylesheet" href="/src/css/themes.css">
+  <link rel="stylesheet" href="/src/css/typography.css">
+  <link rel="stylesheet" href="/src/css/layout.css">
+  <link rel="stylesheet" href="/src/css/components.css">
+  <link rel="stylesheet" href="/src/css/utilities.css">
+
+  <!-- Supabase JS Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <!-- App SPA Mounting Shell -->
+  <div id="app"></div>
+
+  <!-- Application Bootstrap Entry -->
+  <script type="module" src="/src/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+/* ============================================================
+   THEMES — OmniPOS Apple-Inspired SaaS Design System v3.0
+   Light & Dark glassmorphic color themes
+   ============================================================ */
+
+/* ── Light Theme (Apple Studio Light) ───────────────────────── */
+:root,
+[data-theme="light"] {
+
+  /* Brand — Apple Indigo-Violet Accent */
+  --color-primary:       #5e5ce6;
+  --color-primary-hover: #4b48d6;
+  --color-primary-light: rgba(94, 92, 230, 0.08);
+  --color-primary-muted: rgba(94, 92, 230, 0.04);
+  --color-secondary:     #007aff;
+  --color-secondary-hover: #0062cc;
+
+  /* Backgrounds — Apple crisp paper layering */
+  --color-bg-primary:   #f5f5f7;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary:  #eeeeef;
+  --color-bg-elevated:  #ffffff;
+  --color-bg-muted:     #e5e5ea;
+  --color-bg:           #ffffff;
+
+  /* Glassmorphism card surfaces */
+  --color-glass-surface: rgba(255, 255, 255, 0.78);
+  --color-glass-border:  rgba(255, 255, 255, 0.6);
+  --color-surface:       #ffffff;
+
+  /* Text — Apple Crisp Typography */
+  --color-text-primary:   #1d1d1f;
+  --color-text-secondary: #515154;
+  --color-text-muted:     #86868b;
+  --color-text-inverse:   #ffffff;
+  --color-text:           #1d1d1f;
+
+  /* Borders — Hairline precision */
+  --color-border:       #e1e1e6;
+  --color-border-hover: #d2d2d7;
+  --color-divider:      #f0f0f4;
+
+  /* ── Semantic Status (Apple Human Interface Colors) ────────── */
+  --color-success:      #34c759;
+  --color-success-bg:   #eaf9ed;
+  --color-success-text: #1b7a35;
+
+  --color-warning:      #ff9500;
+  --color-warning-bg:   #fff7e6;
+  --color-warning-text: #995c00;
+
+  --color-error:        #ff3b30;
+  --color-danger:       #ff3b30;
+  --color-error-bg:     #ffebe9;
+  --color-error-text:   #991b1b;
+
+  --color-info:         #5856d6;
+  --color-info-bg:      #f0f0fd;
+  --color-info-text:    #3634a3;
+
+  /* POS Status */
+  --color-status-active:  #34c759;
+  --color-status-offline: #86868b;
+  --color-status-syncing: #ff9500;
+
+  /* Sidebar */
+  --sidebar-bg:          #ffffff;
+  --sidebar-border:      #e1e1e6;
+  --sidebar-item-hover:  #f0f0f4;
+  --sidebar-item-active-bg: rgba(94, 92, 230, 0.08);
+  --sidebar-item-active-text: #5e5ce6;
+  --sidebar-logo-bg:     linear-gradient(135deg, #5e5ce6 0%, #af52de 100%);
+
+  /* Header Translucency */
+  --header-bg:    rgba(255, 255, 255, 0.72);
+  --header-blur:  var(--glass-backdrop-light);
+}
+
+/* ── Dark Theme (Apple Dark Mode Pro) ──────────────────────── */
+[data-theme="dark"] {
+
+  /* Brand — Glowing OLED Accent */
+  --color-primary:       #7d7aff;
+  --color-primary-hover: #9896ff;
+  --color-primary-light: rgba(125, 122, 255, 0.15);
+  --color-primary-muted: rgba(125, 122, 255, 0.08);
+
+  /* Backgrounds — Deep OLED Slate */
+  --color-bg-primary:   #000000;
+  --color-bg-secondary: #1c1c1e;
+  --color-bg-tertiary:  #2c2c2e;
+  --color-bg-elevated:  #3a3a3c;
+  --color-bg-muted:     #48484a;
+  --color-bg:           #1c1c1e;
+
+  /* Glassmorphism dark surfaces */
+  --color-glass-surface: rgba(28, 28, 30, 0.75);
+  --color-glass-border:  rgba(255, 255, 255, 0.1);
+  --color-surface:       #1c1c1e;
+
+  /* Text — High Contrast Readability */
+  --color-text-primary:   #f5f5f7;
+  --color-text-secondary: #a1a1a6;
+  --color-text-muted:     #6e6e73;
+  --color-text-inverse:   #000000;
+  --color-text:           #f5f5f7;
+
+  /* Borders */
+  --color-border:       #2c2c2e;
+  --color-border-hover: #3a3a3c;
+  --color-divider:      #2c2c2e;
+
+  /* Semantic Status — High Visibility */
+  --color-success:      #30d158;
+  --color-success-bg:   rgba(48, 209, 88, 0.12);
+  --color-success-text: #66e285;
+
+  --color-warning:      #ff9f0a;
+  --color-warning-bg:   rgba(255, 159, 10, 0.12);
+  --color-warning-text: #ffc066;
+
+  --color-error:        #ff453a;
+  --color-danger:       #ff453a;
+  --color-error-bg:     rgba(255, 69, 58, 0.12);
+  --color-error-text:   #ff857e;
+
+  --color-info:         #64d2ff;
+  --color-info-bg:      rgba(100, 210, 255, 0.12);
+  --color-info-text:    #99e2ff;
+
+  /* POS Status */
+  --color-status-active:  #30d158;
+  --color-status-offline: #6e6e73;
+  --color-status-syncing: #ff9f0a;
+
+  /* Sidebar */
+  --sidebar-bg:           #1c1c1e;
+  --sidebar-border:       #2c2c2e;
+  --sidebar-item-hover:   #2c2c2e;
+  --sidebar-item-active-bg: rgba(125, 122, 255, 0.14);
+  --sidebar-item-active-text: #7d7aff;
+  --sidebar-logo-bg:      linear-gradient(135deg, #7d7aff 0%, #bf5af2 100%);
+
+  /* Header Translucency */
+  --header-bg:    rgba(28, 28, 30, 0.72);
+  --header-blur:  var(--glass-backdrop-dark);
+}
