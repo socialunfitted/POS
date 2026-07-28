@@ -15,51 +15,70 @@ export class HeaderComponent {
     const { unreadCount } = notificationsStore.getState();
 
     header.innerHTML = `
-      <div class="flex items-center gap-4">
-        <button id="sidebar-toggle-btn" class="btn btn-secondary btn-sm">
-          <span>☰</span>
+      <div class="flex items-center gap-2 md:gap-3 min-w-0">
+        <button id="sidebar-toggle-btn" class="btn btn-secondary btn-sm flex-shrink-0" aria-label="Toggle Menu" title="Toggle Navigation Menu">
+          <span class="text-base font-bold">☰</span>
         </button>
-        <div id="store-switcher-container"></div>
+        <div id="store-switcher-container" class="min-w-0 flex-shrink"></div>
       </div>
 
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 md:gap-3 ml-auto flex-shrink-0">
         <!-- Notification Bell Button -->
-        <a href="#/notifications" id="notif-bell-btn" class="btn btn-secondary btn-sm relative" title="Notification Center">
+        <a href="#/notifications" id="notif-bell-btn" class="btn btn-secondary btn-sm relative p-2" title="Notification Center">
           <span>🔔</span>
-          ${unreadCount > 0 ? `<span class="badge badge-danger text-xs font-bold" style="padding: 1px 5px; font-size: 10px;">${unreadCount}</span>` : ''}
+          ${unreadCount > 0 ? `<span class="badge badge-danger text-xs font-bold absolute -top-1 -right-1 px-1 rounded-full" style="font-size: 9px; min-width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center;">${unreadCount}</span>` : ''}
         </a>
 
-        <button id="theme-toggle-btn" class="btn btn-secondary btn-sm">
-          <span>${theme === 'dark' ? '☀️ Light' : '🌙 Dark'}</span>
+        <!-- Theme Toggle Button -->
+        <button id="theme-toggle-btn" class="btn btn-secondary btn-sm" title="Toggle Light/Dark Theme">
+          <span>${theme === 'dark' ? '☀️' : '🌙'}</span>
+          <span class="hidden md:inline">${theme === 'dark' ? 'Light' : 'Dark'}</span>
         </button>
 
-        <div class="flex items-center gap-3">
-          <div class="text-right">
-            <div class="font-semibold text-sm flex items-center gap-2 justify-end">
-              <span>${user?.fullName || 'Cashier'}</span>
+        <!-- User Profile & Logout -->
+        <div class="flex items-center gap-2">
+          <div class="text-right hidden sm:block">
+            <div class="font-semibold text-xs md:text-sm flex items-center gap-1.5 justify-end">
+              <span class="truncate max-w-[90px] md:max-w-[140px]">${user?.fullName || 'Cashier'}</span>
               ${new BadgeComponent({ text: (role || 'CASHIER').toUpperCase(), variant: role === 'owner' ? 'primary' : 'success' }).render().outerHTML}
             </div>
-            <div class="text-xs text-muted">${user?.email || 'user@pos.local'}</div>
           </div>
+          
           <button id="logout-btn" class="btn btn-secondary btn-sm" title="Sign Out">
-            <span>🚪 Logout</span>
+            <span>🚪</span>
+            <span class="hidden sm:inline">Logout</span>
           </button>
         </div>
       </div>
     `;
 
     // Embed Store Switcher Component
-    header.querySelector('#store-switcher-container').appendChild(new StoreSwitcherComponent().render());
+    const storeContainer = header.querySelector('#store-switcher-container');
+    if (storeContainer) {
+      storeContainer.appendChild(new StoreSwitcherComponent().render());
+    }
 
     // Sidebar Toggle
-    header.querySelector('#sidebar-toggle-btn').addEventListener('click', () => {
-      const currentState = uiStore.getState().isSidebarCollapsed;
-      uiStore.setState({ isSidebarCollapsed: !currentState });
+    header.querySelector('#sidebar-toggle-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const sidebar = document.querySelector('.app-sidebar');
       const layout = document.querySelector('.app-layout');
-      if (layout) {
-        layout.classList.toggle('sidebar-collapsed', !currentState);
+
+      if (window.innerWidth <= 768) {
+        if (sidebar) sidebar.classList.toggle('mobile-open');
+      } else {
+        if (sidebar) sidebar.classList.remove('mobile-open');
+
+        const currentState = uiStore.getState().isSidebarCollapsed;
+        uiStore.setState({ isSidebarCollapsed: !currentState });
+        if (layout) {
+          layout.classList.toggle('sidebar-collapsed', !currentState);
+        }
       }
     });
+
+
+
 
     // Theme Toggle
     header.querySelector('#theme-toggle-btn').addEventListener('click', () => {
@@ -68,6 +87,14 @@ export class HeaderComponent {
       uiStore.setState({ theme: nextTheme });
       localStorage.setItem('omnipos_theme', nextTheme);
       document.documentElement.setAttribute('data-theme', nextTheme);
+      
+      const themeBtn = header.querySelector('#theme-toggle-btn');
+      if (themeBtn) {
+        themeBtn.innerHTML = `
+          <span>${nextTheme === 'dark' ? '☀️' : '🌙'}</span>
+          <span class="hidden md:inline">${nextTheme === 'dark' ? 'Light' : 'Dark'}</span>
+        `;
+      }
     });
 
     // Logout Action
@@ -78,3 +105,4 @@ export class HeaderComponent {
     return header;
   }
 }
+

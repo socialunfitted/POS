@@ -1,5 +1,6 @@
 /**
  * Reusable Data Table Component
+ * Automatically wrapped in a touch-friendly overflow container for 100% mobile compatibility.
  */
 export class TableComponent {
   /**
@@ -14,8 +15,12 @@ export class TableComponent {
   }
 
   render() {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'data-table-wrapper w-full overflow-x-auto';
+    wrapper.style.webkitOverflowScrolling = 'touch';
+
     const table = document.createElement('table');
-    table.className = 'w-full text-sm';
+    table.className = 'data-table w-full text-sm';
 
     // Header
     const thead = document.createElement('thead');
@@ -24,7 +29,7 @@ export class TableComponent {
 
     this.props.columns.forEach((col) => {
       const th = document.createElement('th');
-      th.className = 'p-3 text-left font-semibold text-secondary';
+      th.className = 'p-3 text-left font-semibold text-secondary whitespace-nowrap';
       th.textContent = col.title;
       headerRow.appendChild(th);
     });
@@ -48,7 +53,7 @@ export class TableComponent {
 
         this.props.columns.forEach((col) => {
           const td = document.createElement('td');
-          td.className = 'p-3 text-primary';
+          td.className = 'p-3 text-primary whitespace-nowrap';
           if (typeof col.render === 'function') {
             const customVal = col.render(row[col.key], row);
             if (customVal instanceof HTMLElement) {
@@ -67,6 +72,8 @@ export class TableComponent {
     }
 
     table.appendChild(tbody);
-    return table;
+    wrapper.appendChild(table);
+    return wrapper;
   }
 }
+

@@ -95,36 +95,55 @@ export class BarcodeScannerService {
   async startCamera(videoEl, canvasEl) {
     if (this._cameraActive) return;
 
-    // Check BarcodeDetector API support
-    if (!('BarcodeDetector' in window)) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       eventBus.emit('barcode:error', {
-        code: 'CAMERA_API_UNSUPPORTED',
-        message: 'Native BarcodeDetector API is not supported in this browser. Please use Chrome 83+ or Edge 83+.'
+        code: 'CAMERA_UNAVAILABLE',
+        message: 'Camera is not accessible on this device or browser.'
       });
       return;
     }
 
-    // Request camera permission
+    // Request camera permission with preference for back camera (facingMode: environment)
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
       });
     } catch (err) {
       const code = err.name === 'NotAllowedError' ? 'CAMERA_PERMISSION_DENIED' : 'CAMERA_UNAVAILABLE';
-      eventBus.emit('barcode:error', { code, message: err.message });
+      eventBus.emit('barcode:error', {
+        code,
+        message: err.name === 'NotAllowedError' ? 'Please grant camera permission to scan barcodes.' : 'Camera stream could not be opened.'
+      });
       return;
     }
 
     this._cameraStream = stream;
     this._cameraActive = true;
     videoEl.srcObject = stream;
-    await videoEl.play();
 
-    // Instantiate BarcodeDetector with all supported formats
-    this._barcodeDetector = new BarcodeDetector({
-      formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code', 'isbn']
-    });
+    try {
+      await videoEl.play();
+    } catch (_) {
+      // autoplay handled by playsinline
+    }
+
+    // Use native BarcodeDetector if available
+    if ('BarcodeDetector' in window) {
+      try {
+        this._barcodeDetector = new BarcodeDetector({
+          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code', 'isbn']
+        });
+      } catch (_) {
+        this._barcodeDetector = null;
+      }
+    } else {
+      this._barcodeDetector = null;
+    }
 
     this._scanCameraFrame(videoEl, canvasEl);
   }

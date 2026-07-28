@@ -189,6 +189,11 @@ textarea.input-field {
   transition: box-shadow var(--transition-normal), transform var(--transition-normal), border-color var(--transition-normal);
   position: relative;
   overflow: hidden;
+  /* Prevent overflow inside CSS Grid/Flex containers */
+  min-width: 0;
+  min-height: 0;
+  /* Prevent CLS when content loads */
+  contain: layout style;
 }
 
 .card-header {
@@ -313,11 +318,15 @@ textarea.input-field {
   border-radius: var(--radius-2xl);
   width: 100%;
   max-width: 580px;
-  max-height: 90vh;
+  /* Use dvh for correct mobile sizing (accounts for address bar) */
+  max-height: min(90vh, 90dvh);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   box-shadow: var(--shadow-2xl), 0 0 0 1px rgba(255, 255, 255, 0.1);
   transform: translateY(20px) scale(0.96);
   transition: transform var(--transition-bounce);
+  /* Compositing layer for smooth animation */
+  will-change: transform;
 }
 
 .modal-overlay.active .modal-card {
@@ -509,6 +518,19 @@ textarea.input-field {
 }
 
 /* ══════════════════════════════════════════════════════════
+   TABLE WRAPPER — Prevents horizontal overflow on small screens
+   ══════════════════════════════════════════════════════════ */
+.data-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+  border-radius: var(--radius-md);
+}
+
+/* ══════════════════════════════════════════════════════════
    POS-SPECIFIC OVERRIDES
    ══════════════════════════════════════════════════════════ */
 
@@ -551,8 +573,15 @@ textarea.input-field {
   animation: fadeIn 0.3s var(--ease-out);
 }
 
+/* Mobile touch targets — consolidated in responsive.css
+   Kept here as a direct safeguard for components ────── */
 @media (max-width: 768px) {
-  .btn    { height: 44px; }
-  .btn-sm { height: 38px; }
-  .input-field, .select-field { height: 44px; }
+  /* Minimum 44px touch target for interactive elements */
+  .btn    { min-height: 44px; height: auto; padding-top: 0.55rem; padding-bottom: 0.55rem; }
+  .btn-sm { min-height: 38px; }
+  .input-field, .select-field { min-height: 44px; height: auto; }
+
+  /* Prevent table from causing horizontal scroll on card */
+  .card { overflow: visible; }
+  .card .data-table-wrapper { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
 }

@@ -43,7 +43,7 @@ export class BarcodeScannerComponent {
 
     this._eventUnsubs   = [];  // eventBus unsubscribe functions
 
-    this._cameraSupported = 'mediaDevices' in navigator && 'BarcodeDetector' in window;
+    this._cameraSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   }
 
   // ─── Public API ─────────────────────────────────────────────────────────────
@@ -107,7 +107,7 @@ export class BarcodeScannerComponent {
 
   _buildInputRow() {
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex; align-items:center; gap:8px;';
+    row.style.cssText = 'display:flex; align-items:center; gap:8px; flex-wrap:wrap;';
 
     // Scanner icon label
     const icon = document.createElement('div');
@@ -136,7 +136,8 @@ export class BarcodeScannerComponent {
     this._inputEl.maxLength       = 64;
     this._inputEl.style.cssText   = `
       flex: 1;
-      padding: 7px 10px;
+      min-width: 140px;
+      padding: 8px 10px;
       border: 1.5px solid var(--color-border, #334155);
       border-radius: var(--radius-sm, 6px);
       background: var(--color-bg, #0f172a);
@@ -170,36 +171,22 @@ export class BarcodeScannerComponent {
       flex-shrink: 0;
     `;
 
-    // Camera toggle button (only shown if BarcodeDetector available)
+    row.appendChild(icon);
+    row.appendChild(this._inputEl);
+
+    // Camera toggle button (Mobile & Desktop)
     if (this._cameraSupported) {
       const camBtn = document.createElement('button');
       camBtn.id = 'camera-scan-btn';
-      camBtn.title = 'Scan with Camera';
+      camBtn.className = 'btn btn-primary btn-sm flex items-center gap-1.5 font-bold';
+      camBtn.title = 'Scan Barcode with Camera';
       camBtn.innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-          <circle cx="12" cy="13" r="4"/>
-        </svg>`;
-      camBtn.style.cssText = `
-        padding: 6px 8px;
-        border: 1.5px solid var(--color-border, #334155);
-        border-radius: var(--radius-sm, 6px);
-        background: var(--color-surface, #1e293b);
-        color: var(--color-text, #f1f5f9);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        transition: background 0.15s;
-        flex-shrink: 0;
-      `;
-      camBtn.addEventListener('mouseenter', () => { camBtn.style.background = 'var(--color-primary, #6366f1)'; });
-      camBtn.addEventListener('mouseleave', () => { camBtn.style.background = 'var(--color-surface, #1e293b)'; });
+        <span>📷</span>
+        <span>Scan Barcode</span>`;
       camBtn.addEventListener('click', () => this._toggleCamera());
       row.appendChild(camBtn);
     }
 
-    row.appendChild(icon);
-    row.appendChild(this._inputEl);
     row.appendChild(this._statusEl);
     return row;
   }
@@ -207,42 +194,53 @@ export class BarcodeScannerComponent {
   _buildCameraPanel() {
     this._cameraPanel = document.createElement('div');
     this._cameraPanel.id = 'camera-scan-panel';
-    this._cameraPanel.style.cssText = 'display:none; flex-direction:column; gap:8px;';
+    this._cameraPanel.style.cssText = 'display:none; flex-direction:column; gap:8px; margin-top:6px;';
 
-    // Video preview
+    // Video preview with laser line overlay
+    const videoContainer = document.createElement('div');
+    videoContainer.style.cssText = 'position:relative; width:100%; border-radius:8px; overflow:hidden; background:#000;';
+
     this._videoEl = document.createElement('video');
-    this._videoEl.muted     = true;
+    this._videoEl.muted = true;
     this._videoEl.playsInline = true;
-    this._videoEl.style.cssText = `
-      width: 100%;
-      max-height: 200px;
-      border-radius: var(--radius-sm, 6px);
-      background: #000;
-      object-fit: cover;
+    this._videoEl.style.cssText = 'width:100%; height:220px; object-fit:cover; display:block;';
+
+    const laserLine = document.createElement('div');
+    laserLine.style.cssText = `
+      position: absolute;
+      top: 50%; left: 5%; right: 5%;
+      height: 2px;
+      background: #ef4444;
+      box-shadow: 0 0 8px #ef4444, 0 0 16px #ef4444;
+      z-index: 10;
     `;
 
-    // Hidden canvas (used by scanner internally)
+    videoContainer.appendChild(this._videoEl);
+    videoContainer.appendChild(laserLine);
+
+    // Hidden canvas
     this._canvasEl = document.createElement('canvas');
     this._canvasEl.style.display = 'none';
 
     // Instruction label
     const label = document.createElement('div');
-    label.textContent = '📷 Point camera at a barcode — auto-detects EAN, UPC, Code 128, QR';
-    label.style.cssText = 'font-size:10px; color:var(--color-text-muted,#64748b); text-align:center;';
+    label.innerHTML = '📷 <strong>Point camera at product barcode</strong> — Auto-scans EAN, UPC, Code 128, QR';
+    label.style.cssText = 'font-size:11px; color:var(--color-text-muted,#94a3b8); text-align:center; padding: 4px 0;';
 
     // Close camera button
     const closeBtn = document.createElement('button');
-    closeBtn.textContent = '✕ Close Camera';
-    closeBtn.className = 'btn btn-secondary btn-sm';
+    closeBtn.textContent = '✕ Close Camera Viewfinder';
+    closeBtn.className = 'btn btn-secondary btn-sm w-full';
     closeBtn.addEventListener('click', () => this._toggleCamera());
 
-    this._cameraPanel.appendChild(this._videoEl);
+    this._cameraPanel.appendChild(videoContainer);
     this._cameraPanel.appendChild(this._canvasEl);
     this._cameraPanel.appendChild(label);
     this._cameraPanel.appendChild(closeBtn);
 
     return this._cameraPanel;
   }
+
 
   // ─── Private: Camera Toggle ───────────────────────────────────────────────────
 

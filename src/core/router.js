@@ -50,6 +50,27 @@ export class Router {
     let hash = window.location.hash || '#/dashboard';
     let route = this.routes.get(hash);
 
+    // Auto-close mobile navigation drawer & remove overlay on every route change
+    const sidebar = document.querySelector('.app-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (sidebar) sidebar.classList.remove('mobile-open');
+    if (overlay) overlay.classList.remove('active');
+    document.body.classList.remove('mobile-drawer-open');
+
+    // Update active nav item state in sidebar
+    if (sidebar) {
+      sidebar.querySelectorAll('nav a').forEach((link) => {
+        const href = link.getAttribute('href');
+        if (href === hash) {
+          link.classList.add('btn-primary', 'active');
+          link.classList.remove('btn-secondary');
+        } else if (!link.innerHTML.includes('Super Admin')) {
+          link.classList.remove('btn-primary', 'active');
+          link.classList.add('btn-secondary');
+        }
+      });
+    }
+
     if (!route) {
       route = this.routes.get('#/404') || {
         path: '#/404',
@@ -57,6 +78,7 @@ export class Router {
         meta: {}
       };
     }
+
 
     const context = { route, redirectPath: null };
 

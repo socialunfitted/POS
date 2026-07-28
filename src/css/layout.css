@@ -1,10 +1,11 @@
 /* ============================================================
-   LAYOUT — OmniPOS Premium Design System v2.0
+   LAYOUT — OmniPOS Premium Design System v3.0
    Grid, sidebar, header, main content and responsive breakpoints
    ============================================================ */
 
 #app {
   min-height: 100vh;
+  min-height: 100dvh; /* dynamic viewport height — safe on mobile */
   display: flex;
   flex-direction: column;
   background-color: var(--color-bg-primary);
@@ -19,6 +20,7 @@
     "sidebar header"
     "sidebar main";
   min-height: 100vh;
+  min-height: 100dvh;
   transition: grid-template-columns var(--transition-normal);
 }
 
@@ -41,6 +43,13 @@
   top: 0;
   z-index: var(--z-header);
   height: 60px;
+  /* Prevent content overflow on small screens */
+  overflow: hidden;
+  gap: var(--space-4);
+  /* Hardware-accelerated compositing layer */
+  will-change: transform;
+  /* Prevent header from shrinking its grid area */
+  min-width: 0;
 }
 
 /* ── Premium Sidebar ─────────────────────────────────────── */
@@ -51,6 +60,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
@@ -59,6 +69,14 @@
   padding: var(--space-4);
   gap: var(--space-1);
   transition: width var(--transition-normal);
+  /* Smooth sidebar scrolling */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent text from being selected while resizing */
+  user-select: none;
+  /* Hardware compositing */
+  will-change: width;
+  /* Prevent layout bleed */
+  min-width: 0;
 }
 
 /* Sidebar logo block */
@@ -70,6 +88,7 @@
   margin-bottom: var(--space-4);
   border-radius: var(--radius-md);
   cursor: default;
+  flex-shrink: 0;
 }
 
 /* Sidebar nav items — inject premium styles for existing .btn.btn-secondary links */
@@ -85,6 +104,10 @@
   border: none !important;
   height: 38px;
   letter-spacing: -0.01em;
+  /* Prevent text clipping */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .app-sidebar .btn-secondary {
@@ -127,6 +150,7 @@
   padding: var(--space-3) !important;
   box-shadow: none !important;
   margin-top: auto;
+  flex-shrink: 0;
 }
 
 /* ── Main Content Area ───────────────────────────────────── */
@@ -135,7 +159,20 @@
   padding: var(--space-6) var(--space-8);
   background-color: var(--color-bg-primary);
   overflow-y: auto;
+  overflow-x: hidden;
   min-width: 0; /* prevent overflow */
+  width: 100%;
+  max-width: 100%;
+  /* Smooth mobile scroll */
+  -webkit-overflow-scrolling: touch;
+  /* Contain paint to this area */
+  contain: layout;
+}
+
+[class*="-view"] {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 /* ── Container ───────────────────────────────────────────── */
@@ -145,12 +182,19 @@
   margin: 0 auto;
 }
 
+
 /* ── POS Two-Column Layout ───────────────────────────────── */
 .grid-pos-layout {
   display: grid;
   grid-template-columns: 1fr 400px;
   gap: var(--space-6);
   align-items: start;
+  /* Prevent children from overflowing the grid */
+  min-width: 0;
+}
+
+.grid-pos-layout > * {
+  min-width: 0; /* allow grid children to shrink */
 }
 
 /* ── Responsive Breakpoints ──────────────────────────────── */
@@ -190,6 +234,7 @@
     left: 0;
     width: 280px;
     height: 100vh;
+    height: 100dvh;
     box-shadow: var(--shadow-2xl);
     z-index: var(--z-modal);
   }

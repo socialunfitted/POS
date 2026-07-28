@@ -12,7 +12,7 @@ import { eventBus } from '../core/event-bus.js';
 
 export async function DashboardView() {
   const container = document.createElement('div');
-  container.className = 'dashboard-view flex flex-col gap-6';
+  container.className = 'dashboard-view flex flex-col gap-6 w-full min-w-0';
 
   const { tenant } = tenantStore.getState();
   const { user } = authStore.getState();
@@ -24,7 +24,7 @@ export async function DashboardView() {
     subtitle: `Real-time Business Management for ${tenant?.name || 'OmniPOS Store'}`,
     content: `
       <div class="flex items-center justify-between flex-wrap gap-4 mt-2">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
           ${new BadgeComponent({ text: 'Register: OPEN', variant: 'success' }).render().outerHTML}
           ${new BadgeComponent({ text: 'Sync: ONLINE', variant: 'primary' }).render().outerHTML}
           <span class="text-xs text-muted">Date: ${new Date().toLocaleDateString()}</span>
@@ -46,8 +46,10 @@ export async function DashboardView() {
   // 2. Top KPI Metrics Grid
   const kpiGrid = document.createElement('div');
   kpiGrid.style.display = 'grid';
-  kpiGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(220px, 1fr))';
+  kpiGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))';
   kpiGrid.style.gap = 'var(--space-4)';
+  kpiGrid.style.width = '100%';
+
 
   const kpis = [
     { title: "Today's Sales", val: `$${state.todaySales.toFixed(2)}`, badge: `${state.todayOrderCount} Orders`, color: 'var(--color-primary)' },

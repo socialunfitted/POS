@@ -145,7 +145,7 @@
 .bg-danger-light  { background-color: var(--color-error-bg); }
 .bg-info-light    { background-color: var(--color-info-bg); }
 
-/* ── Responsive show/hide ────────────────────────────────── */
+/* ── Responsive show/hide (viewport breakpoints) ─────────── */
 @media (max-width: 768px) {
   .hide-mobile { display: none !important; }
 }
@@ -156,4 +156,43 @@
   .hide-tablet { display: none !important; }
   .grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-cols-5 { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 640px) {
+  .grid-cols-2 { grid-template-columns: 1fr; }
+  .grid-cols-3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4,
+  .grid-cols-5 { grid-template-columns: 1fr; }
+}
+
+/* ── Responsive auto-fit grids (no media query needed) ───── */
+/* Usage: class="grid-auto-sm" — cards auto-wrap at 200px minimum */
+.grid-auto-xs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr)); gap: var(--space-3); }
+.grid-auto-sm { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr)); gap: var(--space-4); }
+.grid-auto-md { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: var(--space-4); }
+.grid-auto-lg { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: var(--space-5); }
+
+/* ── Min-width 0 (prevents grid overflow blowout) ────────── */
+.min-w-0  { min-width: 0 !important; }
+.min-h-0  { min-height: 0 !important; }
+
+/* ── Scroll utilities ─────────────────────────────────────── */
+.scroll-smooth   { scroll-behavior: smooth; }
+.overscroll-none { overscroll-behavior: none; }
+
+/* ── Aspect ratios (prevents CLS on media) ───────────────── */
+.aspect-video  { aspect-ratio: 16 / 9; }
+.aspect-square { aspect-ratio: 1 / 1; }
+.aspect-card   { aspect-ratio: 4 / 3; }
+
+/* ── Safe-area padding helpers ───────────────────────────── */
+.safe-area-x {
+  padding-left:  env(safe-area-inset-left,  0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.safe-area-b {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
