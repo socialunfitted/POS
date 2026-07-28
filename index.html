@@ -2,22 +2,53 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OmniPOS - Enterprise SaaS POS Billing Platform</title>
-  
-  <meta name="description" content="Production-ready multi-tenant SaaS Point of Sale & Billing System built with Vanilla HTML5, CSS3, JavaScript ES6 Modules, and Supabase.">
-  <meta name="theme-color" content="#5b50f0">
+  <!-- Viewport: covers all devices + safe-area for notch/Dynamic Island -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-  <!-- PWA Manifest -->
+  <!-- ── SEO Meta Tags ──────────────────────────────────── -->
+  <title>OmniPOS – Enterprise SaaS POS Billing & Business Management Platform</title>
+  <meta name="description" content="OmniPOS is a production-ready multi-tenant SaaS Point of Sale, billing, inventory, employee, expense management, and AI analytics platform built for modern retail businesses.">
+  <meta name="keywords" content="POS, point of sale, billing software, inventory management, GST billing, retail software, SaaS POS">
+  <meta name="author" content="OmniPOS">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://omnipos.app/">
+
+  <!-- Theme color (light + dark media queries) -->
+  <meta name="theme-color" content="#5e5ce6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#7d7aff"  media="(prefers-color-scheme: dark)">
+
+  <!-- Open Graph / Social -->
+  <meta property="og:type"        content="website">
+  <meta property="og:url"         content="https://omnipos.app/">
+  <meta property="og:title"       content="OmniPOS – Enterprise SaaS POS Billing Platform">
+  <meta property="og:description" content="Multi-tenant SaaS POS with AI analytics, inventory, employees, reports, and barcode scanning.">
+  <meta property="og:image"       content="/assets/og-image.png">
+  <meta name="twitter:card"       content="summary_large_image">
+
+  <!-- ── PWA / iOS App Meta ────────────────────────────── -->
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/assets/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OmniPOS">
+  <meta name="mobile-web-app-capable" content="yes">
 
-  <!-- Google Fonts — Inter Variable + JetBrains Mono -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <!-- ── Performance: Font preconnect (non-blocking) ───── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Font display=swap prevents FOIT; font loads async -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet"
+    media="print"
+    onload="this.media='all'"
+  >
+  <!-- Non-JS fallback -->
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  </noscript>
 
-  <!-- Architecture Stylesheets -->
+  <!-- ── Architecture Stylesheets (load order matters) ─── -->
   <link rel="stylesheet" href="/src/css/reset.css">
   <link rel="stylesheet" href="/src/css/tokens.css">
   <link rel="stylesheet" href="/src/css/themes.css">
@@ -25,13 +56,21 @@
   <link rel="stylesheet" href="/src/css/layout.css">
   <link rel="stylesheet" href="/src/css/components.css">
   <link rel="stylesheet" href="/src/css/utilities.css">
+  <!-- Responsive & cross-device optimizations (last, highest specificity wins) -->
+  <link rel="stylesheet" href="/src/css/responsive.css">
 
-  <!-- Supabase JS Client Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- ── Supabase JS Client Library ────────────────────── -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 </head>
 <body>
+  <!-- Skip to main content (accessibility — keyboard navigation) -->
+  <a class="skip-link" href="#app-main-content">Skip to main content</a>
+
   <!-- App SPA Mounting Shell -->
-  <div id="app"></div>
+  <div id="app" role="application" aria-label="OmniPOS Application"></div>
+
+  <!-- Sidebar overlay backdrop (mobile) -->
+  <div id="sidebar-overlay" class="sidebar-overlay" aria-hidden="true"></div>
 
   <!-- Application Bootstrap Entry -->
   <script type="module" src="/src/app.js"></script>
