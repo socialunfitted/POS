@@ -1,7 +1,7 @@
 /**
  * POS Billing View — with integrated Barcode Scanner
  *
- * This module renders the full POS billing terminal including:
+ * Renders the POS billing terminal including:
  *   • BarcodeScannerComponent (USB/BT/Camera barcode input)
  *   • Product search (name + barcode)
  *   • Cart management (add, remove, adjust qty)
@@ -10,10 +10,6 @@
  *   • Payment modal (Cash, Card, UPI, Wallet, Split)
  *   • Thermal receipt printing (58mm & 80mm)
  *   • Offline-first: cart persists in sessionStorage
- *
- * All barcode scanner functionality is additive — no existing billing
- * layout has been altered. The scanner strip renders above the product
- * search bar as a compact collapsible section.
  */
 
 import { BarcodeScannerComponent } from '../components/pos/barcode-scanner.component.js';
@@ -26,7 +22,6 @@ import { CardComponent }           from '../components/base/card.component.js';
 import { ButtonComponent }         from '../components/base/button.component.js';
 import { InputComponent }          from '../components/base/input.component.js';
 import { ModalComponent }          from '../components/base/modal.component.js';
-import { TableComponent }          from '../components/base/table.component.js';
 
 // ─── GST Rates available at billing ──────────────────────────────────────────
 const GST_RATES = [0, 5, 12, 18, 28];
@@ -48,16 +43,46 @@ export async function POSBillingView() {
 
   // ─── Scanner Component ────────────────────────────────────────────────────────
   const scannerComponent = new BarcodeScannerComponent({
-    onProductResolved: (product) => {
-      _addToCart(product);
-      _showScanToast(product.name);
+    onProductResolved: (product, barcode) => {
+      try {
+        if (barcode && searchInput) {
+          const actualIn = searchInput.querySelector('input');
+          if (actualIn) actualIn.value = barcode;
+          productSearch = barcode.toLowerCase();
+          renderProductGrid();
+        }
+
+        const targetIdx = _addToCart(product);
+        _showScanToast(product.name);
+
+        setTimeout(() => {
+          const qtyIn = cartCard.querySelector(`.cart-qty-input[data-idx="${targetIdx}"]`);
+          if (qtyIn) {
+            qtyIn.focus();
+            qtyIn.select();
+          }
+        }, 60);
+      } catch (err) {
+        console.error('[POSBilling] Error details (onProductResolved):', err);
+      }
     },
     onNotFound: (barcode) => {
-      eventBus.emit('NOTIFICATION_TRIGGERED', {
-        type: 'error',
-        title: 'Product Not Found',
-        message: `No product matched barcode: ${barcode}`
-      });
+      try {
+        if (barcode && searchInput) {
+          const actualIn = searchInput.querySelector('input');
+          if (actualIn) actualIn.value = barcode;
+          productSearch = barcode.toLowerCase();
+          renderProductGrid();
+        }
+
+        eventBus.emit('NOTIFICATION_TRIGGERED', {
+          type: 'error',
+          title: 'Product Not Found',
+          message: 'Product not found'
+        });
+      } catch (err) {
+        console.error('[POSBilling] Error details (onNotFound):', err);
+      }
     }
   });
 
@@ -68,12 +93,10 @@ export async function POSBillingView() {
   const posGrid = document.createElement('div');
   posGrid.className = 'grid-pos-layout w-full min-w-0';
 
-
   // ── Left Column: Product Search + Catalog ──────────────────────────────────
   const leftCol = document.createElement('div');
   leftCol.className = 'flex flex-col gap-4';
 
-  // Product search bar
   let productSearch = '';
   const searchCard = new CardComponent({
     title: '🛍️ POS Billing Terminal',
@@ -82,7 +105,7 @@ export async function POSBillingView() {
   }).render();
 
   const searchInput = new InputComponent({
-    placeholder: '🔍 Search product by name or SKU...',
+    placeholder: '🔍 Search product by name, SKU or barcode...',
     onChange: (val) => {
       productSearch = val.toLowerCase();
       renderProductGrid();
@@ -100,13 +123,14 @@ export async function POSBillingView() {
 
   const renderProductGrid = () => {
     const grid = productGridCard.querySelector('#product-grid');
+    if (!grid) return;
     grid.innerHTML = '';
     const { products } = productsStore.getState();
     const filtered = products.filter((p) =>
       !productSearch ||
-      p.name.toLowerCase().includes(productSearch) ||
-      p.sku.toLowerCase().includes(productSearch) ||
-      p.barcode.includes(productSearch)
+      (p.name && p.name.toLowerCase().includes(productSearch)) ||
+      (p.sku && p.sku.toLowerCase().includes(productSearch)) ||
+      (p.barcode && p.barcode.toLowerCase().includes(productSearch))
     );
 
     filtered.slice(0, 24).forEach((p) => {
@@ -117,17 +141,20 @@ export async function POSBillingView() {
         border: 1.5px solid var(--color-border);
       `;
       tile.innerHTML = `
-        <img src="${p.imageUrl}" style="width:100%;height:70px;object-fit:cover;border-radius:var(--radius-sm);margin-bottom:6px;" />
+        <img src="${p.imageUrl || '/assets/icon-192.png'}" style="width:100%;height:70px;object-fit:cover;border-radius:var(--radius-sm);margin-bottom:6px;" />
         <div class="font-bold text-xs truncate" title="${p.name}">${p.name}</div>
         <div class="text-xs text-muted font-mono">${p.sku}</div>
         <div class="flex justify-between items-center mt-1">
-          <span class="font-bold text-primary text-sm">$${parseFloat(p.sellingPrice).toFixed(2)}</span>
+          <span class="font-bold text-primary text-sm">$${parseFloat(p.sellingPrice || 0).toFixed(2)}</span>
           <span class="badge ${p.stockQuantity <= p.minStockLevel ? 'badge-danger' : 'badge-success'} text-xs">${p.stockQuantity}</span>
         </div>
       `;
       tile.addEventListener('mouseenter', () => { tile.style.borderColor = 'var(--color-primary)'; });
       tile.addEventListener('mouseleave', () => { tile.style.borderColor = 'var(--color-border)'; });
-      tile.addEventListener('click', () => _addToCart(p));
+      tile.addEventListener('click', () => {
+        _addToCart(p);
+        barcodeAudio.playSuccess();
+      });
       grid.appendChild(tile);
     });
 
@@ -303,6 +330,7 @@ export async function POSBillingView() {
   // ─── Cart Render ──────────────────────────────────────────────────────────────
   const renderCart = () => {
     const wrapper = cartCard.querySelector('#cart-table-wrapper');
+    if (!wrapper) return;
     wrapper.innerHTML = '';
 
     if (cartItems.length === 0) {
@@ -333,13 +361,13 @@ export async function POSBillingView() {
       tr.innerHTML = `
         <td style="padding:6px;">
           <div class="font-bold" style="max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.product.name}">${item.product.name}</div>
-          <div style="color:var(--color-text-muted); font-size:10px;">${item.product.sku} &bull; GST ${item.gstRate}%</div>
+          <div style="color:var(--color-text-muted); font-size:10px;">${item.product.sku || ''} &bull; GST ${item.gstRate}%</div>
         </td>
         <td style="text-align:center; padding:4px;">
-          <div style="display:flex; align-items:center; justify-content:center; gap:4px;">
-            <button class="qty-dec" data-idx="${idx}" style="width:22px;height:22px;border:1px solid var(--color-border);border-radius:4px;background:var(--color-bg);cursor:pointer;color:var(--color-text);">−</button>
-            <span style="font-weight:700; min-width:24px; text-align:center;">${item.qty}</span>
-            <button class="qty-inc" data-idx="${idx}" style="width:22px;height:22px;border:1px solid var(--color-border);border-radius:4px;background:var(--color-bg);cursor:pointer;color:var(--color-text);">+</button>
+          <div style="display:flex; align-items:center; justify-content:center; gap:3px;">
+            <button class="qty-dec" data-idx="${idx}" style="width:20px;height:20px;border:1px solid var(--color-border);border-radius:4px;background:var(--color-bg);cursor:pointer;color:var(--color-text); font-weight:bold;">−</button>
+            <input class="cart-qty-input" data-idx="${idx}" type="number" min="1" value="${item.qty}" style="width:42px; height:22px; text-align:center; border:1px solid var(--color-border); border-radius:4px; background:var(--color-bg); color:var(--color-text); font-weight:700; font-size:11px;" />
+            <button class="qty-inc" data-idx="${idx}" style="width:20px;height:20px;border:1px solid var(--color-border);border-radius:4px;background:var(--color-bg);cursor:pointer;color:var(--color-text); font-weight:bold;">+</button>
           </div>
         </td>
         <td style="text-align:right; padding:4px;">$${item.sellingPrice.toFixed(2)}</td>
@@ -358,6 +386,22 @@ export async function POSBillingView() {
     tbody.querySelectorAll('.qty-inc').forEach((btn) =>
       btn.addEventListener('click', () => { _changeQty(parseInt(btn.dataset.idx), 1); })
     );
+    tbody.querySelectorAll('.cart-qty-input').forEach((input) => {
+      input.addEventListener('change', (e) => {
+        const val = parseInt(e.target.value) || 1;
+        const idx = parseInt(input.dataset.idx);
+        cartItems[idx].qty = Math.max(1, val);
+        _persistCart(cartItems);
+        renderCart();
+        renderTotals();
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          scannerComponent.focus();
+        }
+      });
+    });
     tbody.querySelectorAll('.cart-remove').forEach((btn) =>
       btn.addEventListener('click', () => { cartItems.splice(parseInt(btn.dataset.idx), 1); _persistCart(cartItems); renderCart(); renderTotals(); })
     );
@@ -370,6 +414,7 @@ export async function POSBillingView() {
     const { subtotal, gstBreakdown, totalGst, discountAmount, loyaltyDiscount, grandTotal } = _computeTotals();
 
     const display = totalsCard.querySelector('#totals-display');
+    if (!display) return;
     const row = (label, value, cls = '') => `
       <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--color-border);">
         <span style="color:var(--color-text-muted);">${label}</span>
@@ -444,7 +489,6 @@ export async function POSBillingView() {
         <div style="width:120px;height:120px;background:white;display:flex;align-items:center;justify-content:center;border-radius:8px;">
           <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
             <rect width="80" height="80" fill="white"/>
-            <!-- Simplified QR pattern -->
             <rect x="10" y="10" width="24" height="24" rx="2" fill="#1e293b"/>
             <rect x="14" y="14" width="16" height="16" rx="1" fill="white"/>
             <rect x="16" y="16" width="12" height="12" rx="0" fill="#6366f1"/>
@@ -588,9 +632,13 @@ export async function POSBillingView() {
 
   // ─── Cart Helpers ─────────────────────────────────────────────────────────────
   const _addToCart = (product) => {
-    const existing = cartItems.find((i) => i.product.id === product.id);
-    if (existing) {
-      existing.qty++;
+    const existingIdx = cartItems.findIndex((i) => i.product.id === product.id);
+    if (existingIdx >= 0) {
+      cartItems[existingIdx].qty++;
+      _persistCart(cartItems);
+      renderCart();
+      renderTotals();
+      return existingIdx;
     } else {
       cartItems.push({
         product,
@@ -598,23 +646,26 @@ export async function POSBillingView() {
         sellingPrice: parseFloat(product.sellingPrice) || 0,
         gstRate: parseFloat(product.gstRate) || 0
       });
+      const newIdx = cartItems.length - 1;
+      _persistCart(cartItems);
+      renderCart();
+      renderTotals();
+      return newIdx;
     }
-    _persistCart(cartItems);
-    renderCart();
-    renderTotals();
   };
 
   const _changeQty = (idx, delta) => {
-    cartItems[idx].qty = Math.max(1, cartItems[idx].qty + delta);
-    _persistCart(cartItems);
-    renderCart();
-    renderTotals();
+    if (cartItems[idx]) {
+      cartItems[idx].qty = Math.max(1, cartItems[idx].qty + delta);
+      _persistCart(cartItems);
+      renderCart();
+      renderTotals();
+    }
   };
 
   const _computeTotals = () => {
     const subtotal = cartItems.reduce((s, i) => s + i.qty * i.sellingPrice, 0);
 
-    // Group GST by rate
     const gstMap = {};
     cartItems.forEach((i) => {
       const lineBase = i.qty * i.sellingPrice;
@@ -624,12 +675,10 @@ export async function POSBillingView() {
     const gstBreakdown = Object.entries(gstMap).map(([rate, amount]) => ({ rate: Number(rate), amount }));
     const totalGst = gstBreakdown.reduce((s, g) => s + g.amount, 0);
 
-    // Discount
     let discountAmount = 0;
     if (discountType === 'flat') discountAmount = Math.min(discountValue, subtotal + totalGst);
     else discountAmount = ((subtotal + totalGst) * discountValue) / 100;
 
-    // Loyalty discount (100 pts = $5)
     const loyaltyDiscount = loyaltyRedeem > 0 ? loyaltyRedeem / 20 : 0;
 
     const grandTotal = Math.max(0, subtotal + totalGst - discountAmount - loyaltyDiscount);
@@ -666,11 +715,9 @@ export async function POSBillingView() {
     } catch (_) { return []; }
   }
 
-  // Init
   renderCart();
   renderTotals();
 
-  // Cleanup on SPA navigation
   container.addEventListener('disconnected', () => scannerComponent.unmount());
 
   return container;

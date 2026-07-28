@@ -1,30 +1,22 @@
 /**
  * BarcodeScannerComponent
  *
- * A compact, self-contained UI component that renders:
- *   • A barcode text input field (with scan icon) that auto-focuses on mount.
- *   • A "Scan with Camera" toggle button (hidden on browsers without camera support).
- *   • A live camera preview panel (video + canvas) that appears when camera mode is active.
- *   • A scanner connection status indicator badge.
- *   • A product-not-found / multiple-match selection dialog.
- *
- * This component is intentionally UI-neutral — it applies inline styles that
- * complement the existing OmniPOS design tokens without touching the billing layout.
- *
- * Usage:
- *   const scanner = new BarcodeScannerComponent({ onProductResolved });
- *   billingContainerEl.prepend(scanner.render());
- *   scanner.mount();   // starts wedge listener + focuses input
- *   scanner.unmount(); // cleans up listeners and camera
+ * Compact, self-contained UI component that renders:
+ *   • Barcode text input field auto-focused on mount.
+ *   • "Scan with Camera" toggle button.
+ *   • Live camera preview panel (video + canvas).
+ *   • Scanner connection status indicator badge.
+ *   • Multiple-match selection dialog.
  */
 
 import { barcodeScannerService } from '../../services/barcode-scanner.service.js';
+import { barcodeAudio } from '../../services/barcode-audio.service.js';
 import { eventBus } from '../../core/event-bus.js';
 
 export class BarcodeScannerComponent {
   /**
    * @param {Object} options
-   * @param {Function} options.onProductResolved  — called with (product) when a single match is found
+   * @param {Function} options.onProductResolved  — called with (product, barcode) when single match is found
    * @param {Function} [options.onMultipleMatches] — called with (products[]) when >1 matches
    * @param {Function} [options.onNotFound]        — called with (barcode) when no product found
    */
@@ -41,66 +33,85 @@ export class BarcodeScannerComponent {
     this._canvasEl      = null;
     this._cameraActive  = false;
 
-    this._eventUnsubs   = [];  // eventBus unsubscribe functions
-
+    this._eventUnsubs   = [];
     this._cameraSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   }
 
   // ─── Public API ─────────────────────────────────────────────────────────────
 
-  /** Build and return the root DOM element (does not mount yet). */
   render() {
-    this._root = document.createElement('div');
-    this._root.className = 'barcode-scanner-component';
-    this._root.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 10px 12px;
-      background: var(--color-surface, #1e293b);
-      border: 1px solid var(--color-border, #334155);
-      border-radius: var(--radius-md, 8px);
-      margin-bottom: 12px;
-    `;
+    try {
+      this._root = document.createElement('div');
+      this._root.className = 'barcode-scanner-component';
+      this._root.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px 12px;
+        background: var(--color-surface, #1e293b);
+        border: 1px solid var(--color-border, #334155);
+        border-radius: var(--radius-md, 8px);
+        margin-bottom: 12px;
+      `;
 
-    this._root.appendChild(this._buildInputRow());
-    this._root.appendChild(this._buildCameraPanel());
+      this._root.appendChild(this._buildInputRow());
+      this._root.appendChild(this._buildCameraPanel());
 
-    return this._root;
+      return this._root;
+    } catch (err) {
+      console.error('[BarcodeScanner] Error details (render):', err);
+      return document.createElement('div');
+    }
   }
 
-  /** Attach event listeners and start the keyboard-wedge listener. */
   mount() {
-    if (!this._root) throw new Error('BarcodeScannerComponent: call render() before mount().');
+    try {
+      if (!this._root) throw new Error('BarcodeScannerComponent: call render() before mount().');
 
-    barcodeScannerService.startKeyboardWedge();
+      barcodeScannerService.startKeyboardWedge();
 
-    // Subscribe to scanner events
-    this._eventUnsubs.push(
-      eventBus.on('barcode:scanned',          (e) => this._handleScanned(e)),
-      eventBus.on('barcode:not_found',        (e) => this._handleNotFound(e)),
-      eventBus.on('barcode:multiple_matches', (e) => this._handleMultiple(e)),
-      eventBus.on('barcode:error',            (e) => this._handleError(e))
-    );
+      this._eventUnsubs.push(
+        eventBus.on('barcode:scanned',          (e) => this._handleScanned(e)),
+        eventBus.on('barcode:not_found',        (e) => this._handleNotFound(e)),
+        eventBus.on('barcode:multiple_matches', (e) => this._handleMultiple(e)),
+        eventBus.on('barcode:error',            (e) => this._handleError(e))
+      );
 
-    // Auto-focus the barcode input
-    requestAnimationFrame(() => this._inputEl && this._inputEl.focus());
+      requestAnimationFrame(() => this._inputEl && this._inputEl.focus());
 
-    this._setStatus('ready');
+      this._setStatus('ready');
+    } catch (err) {
+      console.error('[BarcodeScanner] Error details (mount):', err);
+    }
   }
 
-  /** Remove event listeners, stop camera, clean up. */
   unmount() {
-    barcodeScannerService.stopKeyboardWedge();
-    barcodeScannerService.stopCamera();
-    this._eventUnsubs.forEach((fn) => typeof fn === 'function' && fn());
-    this._eventUnsubs = [];
-    this._cameraActive = false;
+    try {
+      barcodeScannerService.stopKeyboardWedge();
+      barcodeScannerService.stopCamera();
+      this._eventUnsubs.forEach((fn) => typeof fn === 'function' && fn());
+      this._eventUnsubs = [];
+      this._cameraActive = false;
+    } catch (err) {
+      console.error('[BarcodeScanner] Error details (unmount):', err);
+    }
   }
 
-  /** Programmatically focus the barcode input (e.g. after a modal closes). */
   focus() {
-    this._inputEl && this._inputEl.focus();
+    try {
+      this._inputEl && this._inputEl.focus();
+    } catch (_) {}
+  }
+
+  stopCameraView() {
+    try {
+      barcodeScannerService.stopCamera();
+      this._cameraActive = false;
+      if (this._cameraPanel) this._cameraPanel.style.display = 'none';
+      this._setStatus('ready');
+    } catch (err) {
+      console.error('[BarcodeScanner] Error details (stopCameraView):', err);
+    }
   }
 
   // ─── Private: DOM Builders ───────────────────────────────────────────────────
@@ -109,7 +120,6 @@ export class BarcodeScannerComponent {
     const row = document.createElement('div');
     row.style.cssText = 'display:flex; align-items:center; gap:8px; flex-wrap:wrap;';
 
-    // Scanner icon label
     const icon = document.createElement('div');
     icon.innerHTML = `
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary,#6366f1)" stroke-width="2" stroke-linecap="round">
@@ -124,7 +134,6 @@ export class BarcodeScannerComponent {
     icon.title = 'Barcode Scanner';
     icon.style.flexShrink = '0';
 
-    // Barcode text input
     this._inputEl = document.createElement('input');
     this._inputEl.id              = 'barcode-scan-input';
     this._inputEl.type            = 'text';
@@ -159,7 +168,6 @@ export class BarcodeScannerComponent {
       }
     });
 
-    // Status badge
     this._statusEl = document.createElement('span');
     this._statusEl.id = 'scanner-status-badge';
     this._statusEl.style.cssText = `
@@ -174,7 +182,6 @@ export class BarcodeScannerComponent {
     row.appendChild(icon);
     row.appendChild(this._inputEl);
 
-    // Camera toggle button (Mobile & Desktop)
     if (this._cameraSupported) {
       const camBtn = document.createElement('button');
       camBtn.id = 'camera-scan-btn';
@@ -196,7 +203,6 @@ export class BarcodeScannerComponent {
     this._cameraPanel.id = 'camera-scan-panel';
     this._cameraPanel.style.cssText = 'display:none; flex-direction:column; gap:8px; margin-top:6px;';
 
-    // Video preview with laser line overlay
     const videoContainer = document.createElement('div');
     videoContainer.style.cssText = 'position:relative; width:100%; border-radius:8px; overflow:hidden; background:#000;';
 
@@ -218,16 +224,13 @@ export class BarcodeScannerComponent {
     videoContainer.appendChild(this._videoEl);
     videoContainer.appendChild(laserLine);
 
-    // Hidden canvas
     this._canvasEl = document.createElement('canvas');
     this._canvasEl.style.display = 'none';
 
-    // Instruction label
     const label = document.createElement('div');
     label.innerHTML = '📷 <strong>Point camera at product barcode</strong> — Auto-scans EAN, UPC, Code 128, QR';
     label.style.cssText = 'font-size:11px; color:var(--color-text-muted,#94a3b8); text-align:center; padding: 4px 0;';
 
-    // Close camera button
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '✕ Close Camera Viewfinder';
     closeBtn.className = 'btn btn-secondary btn-sm w-full';
@@ -241,147 +244,196 @@ export class BarcodeScannerComponent {
     return this._cameraPanel;
   }
 
-
   // ─── Private: Camera Toggle ───────────────────────────────────────────────────
 
   async _toggleCamera() {
-    if (this._cameraActive) {
-      barcodeScannerService.stopCamera();
-      this._cameraActive = false;
-      this._cameraPanel.style.display = 'none';
-      this._setStatus('ready');
-    } else {
-      this._cameraPanel.style.display = 'flex';
-      this._setStatus('camera');
-      await barcodeScannerService.startCamera(this._videoEl, this._canvasEl);
-      this._cameraActive = true;
+    try {
+      if (this._cameraActive) {
+        barcodeScannerService.stopCamera();
+        this._cameraActive = false;
+        if (this._cameraPanel) this._cameraPanel.style.display = 'none';
+        this._setStatus('ready');
+      } else {
+        if (this._cameraPanel) this._cameraPanel.style.display = 'flex';
+        this._setStatus('camera');
+        try {
+          await barcodeScannerService.startCamera(this._videoEl, this._canvasEl);
+          this._cameraActive = true;
+        } catch (err) {
+          this._cameraActive = false;
+          if (this._cameraPanel) this._cameraPanel.style.display = 'none';
+          this._setStatus('error');
+          console.error('[BarcodeScanner] Error details (_toggleCamera):', err);
+        }
+      }
+    } catch (err) {
+      console.error('[BarcodeScanner] Error details (_toggleCamera outer):', err);
     }
   }
 
   // ─── Private: Status Badge ────────────────────────────────────────────────────
 
   _setStatus(state) {
-    const map = {
-      ready:  { text: '● SCANNER READY',  bg: '#16a34a22', color: '#4ade80', border: '#16a34a' },
-      camera: { text: '📷 CAMERA ACTIVE', bg: '#7c3aed22', color: '#a78bfa', border: '#7c3aed' },
-      success:{ text: '✓ SCAN OK',        bg: '#16a34a44', color: '#4ade80', border: '#16a34a' },
-      error:  { text: '✕ NOT FOUND',      bg: '#dc262622', color: '#f87171', border: '#dc2626' },
-      offline:{ text: '⚡ OFFLINE MODE',   bg: '#b4530922', color: '#fbbf24', border: '#b45309' }
-    };
-    const cfg = map[state] || map.ready;
-    Object.assign(this._statusEl.style, {
-      background: cfg.bg,
-      color: cfg.color,
-      border: `1px solid ${cfg.border}`
-    });
-    this._statusEl.textContent = cfg.text;
+    try {
+      const map = {
+        ready:  { text: '● SCANNER READY',  bg: '#16a34a22', color: '#4ade80', border: '#16a34a' },
+        camera: { text: '📷 CAMERA ACTIVE', bg: '#7c3aed22', color: '#a78bfa', border: '#7c3aed' },
+        success:{ text: '✓ SCAN OK',        bg: '#16a34a44', color: '#4ade80', border: '#16a34a' },
+        error:  { text: '✕ NOT FOUND',      bg: '#dc262622', color: '#f87171', border: '#dc2626' },
+        offline:{ text: '⚡ OFFLINE MODE',   bg: '#b4530922', color: '#fbbf24', border: '#b45309' }
+      };
+      const cfg = map[state] || map.ready;
+      if (this._statusEl) {
+        Object.assign(this._statusEl.style, {
+          background: cfg.bg,
+          color: cfg.color,
+          border: `1px solid ${cfg.border}`
+        });
+        this._statusEl.textContent = cfg.text;
 
-    if (state === 'success' || state === 'error') {
-      setTimeout(() => this._setStatus(navigator.onLine ? 'ready' : 'offline'), 2000);
+        if (state === 'success' || state === 'error') {
+          setTimeout(() => this._setStatus(navigator.onLine ? (this._cameraActive ? 'camera' : 'ready') : 'offline'), 2000);
+        }
+      }
+    } catch (err) {
+      console.error('[BarcodeScanner] Error details (_setStatus):', err);
     }
   }
 
   // ─── Private: Event Handlers ─────────────────────────────────────────────────
 
-  _handleScanned({ product }) {
-    this._setStatus('success');
-    this._inputEl && (this._inputEl.value = '');
-    setTimeout(() => this._inputEl && this._inputEl.focus(), 50);
-    this._onProductResolved(product);
+  _handleScanned({ barcode, product }) {
+    try {
+      barcodeAudio.playSuccess();
+      this._setStatus('success');
+      if (this._inputEl) this._inputEl.value = '';
+
+      // On successful barcode scan, stop camera stream properly (Req 9)
+      if (this._cameraActive) {
+        this.stopCameraView();
+      }
+
+      this._onProductResolved(product, barcode);
+    } catch (err) {
+      console.error('[BarcodeScanner] Error details (_handleScanned):', err);
+    }
   }
 
   _handleNotFound({ barcode }) {
-    this._setStatus('error');
-    this._inputEl && (this._inputEl.value = '');
-    setTimeout(() => this._inputEl && this._inputEl.focus(), 50);
-    this._onNotFound(barcode);
+    try {
+      this._setStatus('error');
+      if (this._inputEl) this._inputEl.value = '';
+      // Keep scanner/camera open for another scan as per requirement 22!
+      this._onNotFound(barcode);
+    } catch (err) {
+      console.error('[BarcodeScanner] Error details (_handleNotFound):', err);
+    }
   }
 
   _handleMultiple({ products }) {
-    this._buildSelectionDialog(products);
+    try {
+      this._buildSelectionDialog(products);
+    } catch (err) {
+      console.error('[BarcodeScanner] Error details (_handleMultiple):', err);
+    }
   }
 
   _handleError({ code, message }) {
-    this._setStatus('error');
-    console.warn(`[BarcodeScanner] ${code}: ${message}`);
-    this._inputEl && (this._inputEl.value = '');
+    try {
+      this._setStatus('error');
+      if (this._cameraActive) {
+        this.stopCameraView();
+      }
+      console.warn(`[BarcodeScanner] ${code}: ${message}`);
+      if (this._inputEl) this._inputEl.value = '';
+      eventBus.emit('NOTIFICATION_TRIGGERED', {
+        type: 'error',
+        title: 'Scanner Notice',
+        message: message || 'An error occurred with the barcode scanner.'
+      });
+    } catch (err) {
+      console.error('[BarcodeScanner] Error details (_handleError):', err);
+    }
   }
 
   // ─── Private: Multiple-Match Selection Dialog ─────────────────────────────────
 
   _buildSelectionDialog(products) {
-    // Overlay
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.6);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 9999;
-    `;
-
-    const dialog = document.createElement('div');
-    dialog.style.cssText = `
-      background: var(--color-surface, #1e293b);
-      border: 1px solid var(--color-border, #334155);
-      border-radius: var(--radius-lg, 12px);
-      padding: 20px;
-      min-width: 340px;
-      max-width: 500px;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: 0 24px 48px rgba(0,0,0,0.5);
-    `;
-
-    dialog.innerHTML = `
-      <div style="font-weight:700; font-size:14px; margin-bottom:12px; color:var(--color-text,#f1f5f9);">
-        🔍 Multiple Products Found — Select One
-      </div>
-    `;
-
-    products.forEach((p) => {
-      const btn = document.createElement('button');
-      btn.style.cssText = `
-        display: flex; align-items: center; gap: 10px;
-        width: 100%; padding: 10px 12px;
-        background: var(--color-bg, #0f172a);
-        border: 1px solid var(--color-border, #334155);
-        border-radius: var(--radius-sm, 6px);
-        margin-bottom: 8px;
-        cursor: pointer; text-align: left;
-        color: var(--color-text, #f1f5f9);
-        transition: border-color 0.15s;
+    try {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.6);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 9999;
       `;
-      btn.innerHTML = `
-        <div>
-          <div style="font-weight:600; font-size:12px;">${this._escapeHtml(p.name)}</div>
-          <div style="font-size:11px; color:var(--color-text-muted,#64748b);">
-            SKU: ${this._escapeHtml(p.sku)} &bull; $${parseFloat(p.sellingPrice || 0).toFixed(2)}
-          </div>
+
+      const dialog = document.createElement('div');
+      dialog.style.cssText = `
+        background: var(--color-surface, #1e293b);
+        border: 1px solid var(--color-border, #334155);
+        border-radius: var(--radius-lg, 12px);
+        padding: 20px;
+        min-width: 340px;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+      `;
+
+      dialog.innerHTML = `
+        <div style="font-weight:700; font-size:14px; margin-bottom:12px; color:var(--color-text,#f1f5f9);">
+          🔍 Multiple Products Found — Select One
         </div>
       `;
-      btn.addEventListener('mouseenter', () => { btn.style.borderColor = 'var(--color-primary,#6366f1)'; });
-      btn.addEventListener('mouseleave', () => { btn.style.borderColor = 'var(--color-border,#334155)'; });
-      btn.addEventListener('click', () => {
-        document.body.removeChild(overlay);
-        this._onProductResolved(p);
-        this._setStatus('success');
+
+      products.forEach((p) => {
+        const btn = document.createElement('button');
+        btn.style.cssText = `
+          display: flex; align-items: center; gap: 10px;
+          width: 100%; padding: 10px 12px;
+          background: var(--color-bg, #0f172a);
+          border: 1px solid var(--color-border, #334155);
+          border-radius: var(--radius-sm, 6px);
+          margin-bottom: 8px;
+          cursor: pointer; text-align: left;
+          color: var(--color-text, #f1f5f9);
+          transition: border-color 0.15s;
+        `;
+        btn.innerHTML = `
+          <div>
+            <div style="font-weight:600; font-size:12px;">${this._escapeHtml(p.name)}</div>
+            <div style="font-size:11px; color:var(--color-text-muted,#64748b);">
+              SKU: ${this._escapeHtml(p.sku)} &bull; $${parseFloat(p.sellingPrice || 0).toFixed(2)}
+            </div>
+          </div>
+        `;
+        btn.addEventListener('mouseenter', () => { btn.style.borderColor = 'var(--color-primary,#6366f1)'; });
+        btn.addEventListener('mouseleave', () => { btn.style.borderColor = 'var(--color-border,#334155)'; });
+        btn.addEventListener('click', () => {
+          if (document.body.contains(overlay)) document.body.removeChild(overlay);
+          if (this._cameraActive) this.stopCameraView();
+          this._onProductResolved(p, p.barcode);
+          this._setStatus('success');
+        });
+        dialog.appendChild(btn);
+      });
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.className = 'btn btn-secondary btn-sm';
+      cancelBtn.style.marginTop = '4px';
+      cancelBtn.addEventListener('click', () => {
+        if (document.body.contains(overlay)) document.body.removeChild(overlay);
         setTimeout(() => this._inputEl && this._inputEl.focus(), 50);
       });
-      dialog.appendChild(btn);
-    });
+      dialog.appendChild(cancelBtn);
 
-    const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'Cancel';
-    cancelBtn.className = 'btn btn-secondary btn-sm';
-    cancelBtn.style.marginTop = '4px';
-    cancelBtn.addEventListener('click', () => {
-      document.body.removeChild(overlay);
-      setTimeout(() => this._inputEl && this._inputEl.focus(), 50);
-    });
-    dialog.appendChild(cancelBtn);
-
-    overlay.appendChild(dialog);
-    document.body.appendChild(overlay);
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+    } catch (err) {
+      console.error('[BarcodeScanner] Error details (_buildSelectionDialog):', err);
+    }
   }
 
   _escapeHtml(str) {
